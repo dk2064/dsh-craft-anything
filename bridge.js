@@ -172,7 +172,7 @@ export function createMcpBridge(options) {
       const init = await request('initialize', {
         protocolVersion: '2025-06-18',
         capabilities: {},
-        clientInfo: { name: 'dsh-craft-anything', version: '0.5.1' },
+        clientInfo: { name: 'dsh-craft-anything', version: '0.5.2' },
       }, 30000)
       notify('notifications/initialized', {})
       connected = true

@@ -2,6 +2,16 @@
 
 版本号跟随 `package.json`。每条都对应本机真实跑过的验证，不是计划。
 
+## 0.5.2 — 2026-11-21
+
+**复刻模式并进主包，改名「镜像复刻」。** 之前模式住在 `preset/` 子目录，是第二个包，用 `github:` 装主包的人拿不到（git 依赖不能指向子目录），模式选择器里就没有这一条。
+
+- `cordis.patch.yml` 从一个条目变三条：`craft-anything-mcp`（保持 `disabled: true`）、`craft-anything`（桥）、`preset-craft-reverse`（`@deepseek-ai/dsh-agent-preset`，`id: craft-reverse`，`order: 6`）。装主包即有模式。
+- 显示名 `逆向复刻模式` → **`镜像复刻`**，描述改成「自动拆原件、复刻出完整可跑的新项目，再用官方检查把差异收敛掉」；`craft_reverse` 的工具描述同步改名。
+- preset 只加 persona 与干活工具，仍然不重复挂 MCP：连接与 `craft_reverse` 来自同一条 patch 的桥条目，工具名保持 `mcp__craft-anything__*`，CLI 只起一份。
+- 删除 `preset/` 目录与 `package.json` 的 `files` 条目；旧版单独发过 `dsh-craft-reverse-preset-0.2.0.zip`，升级时要从 profile 的 `dependencies` / `bundles` 里一并删掉，否则同一个 preset 声明两次。
+- 实测：`cordis.patch.yml` `yaml.parseDocument` 0 errors、insert 3 行（`craft-anything-mcp` / `craft-anything` / `preset-craft-reverse`），`index.js` 与 `bridge.js` `node --check` 通过。
+
 ## 0.5.1 — 2026-11-21
 
 **修「插件装了但一个工具都没有」。** 0.5.0 在真实 Host 里 `fiberPhase: failed`，本会话与子代理的工具表里 `craft` 命中 0。

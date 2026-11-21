@@ -1105,7 +1105,7 @@ async function loadPlugin(ctx, config = {}) {
 
   ctx.effect(() => ctx.tools.register({
     name: 'craft_reverse',
-    description: '逆向复刻模式：开启后由 Craft Anything 打开原件、分诊、写简报，并按阶段推进“拆解原件 → 写规格 → 复刻 → 官方检查收敛 → 验收”。返回当前阶段的下一步调用清单。',
+    description: '镜像复刻：开启后由 Craft Anything 打开原件、分诊、写简报，并按阶段推进“拆解原件 → 写规格 → 复刻 → 官方检查收敛 → 验收”。返回当前阶段的下一步调用清单。',
     parameters: STATE_SCHEMA,
     timeoutMs: 600000,
     output: {

@@ -48,38 +48,21 @@ craft-anything-cli --version        # 期望 craft-anything-cli 0.6.x
 
 重启 Harness 即生效：侧栏多一个 Craft Anything 面板，工具表多出 17 个工具。若 profile 里还留着官方的 `craft-anything-mcp`（通用 MCP 客户端版），把那一行改成 `disabled: true`，否则两套客户端会各注册一套工具、每轮重复付 schema。
 
-#### 复刻模式是**另一个包**，要单独装
+#### 复刻模式：0.5.2 起已内置
 
-「逆向复刻模式」不在主包里 —— 它是独立的 Agent preset 包 `dsh-craft-reverse-preset`，住在本仓库的 `preset/` 目录。只装主包，模式选择器里不会出现它，这是设计如此：不想用模式的人不必多背一份 persona。
+模式选择器里的「**镜像复刻**」是这条 bundle 自带的一个 Agent preset，跟桥写在同一个 `cordis.patch.yml` 里，装主包就有，不再需要第二个包。
 
-git 依赖不能指向子目录（`github:...#v0.5.1` 只会装根包），所以这一步用解压后的本地目录：
+它只加一份 persona 和干活的工具，不重复挂 MCP：连接和 `craft_reverse` 由上面的桥提供，工具名仍是 `mcp__craft-anything__*`，CLI 也只起一份。
 
-```powershell
-Invoke-WebRequest https://github.com/dk2064/dsh-craft-anything/releases/download/v0.5.1/dsh-craft-reverse-preset-0.2.0.zip -OutFile preset.zip
-Expand-Archive preset.zip -DestinationPath D:\dsh-preset -Force
-```
+**从 0.5.1 及更早升上来**：如果你按旧说明装过 `dsh-craft-reverse-preset`（`preset/` 目录或 release 里的 `dsh-craft-reverse-preset-0.2.0.zip`），把它从 `<profile>/package.json` 的 `dependencies` 和 `dsh.profile.bundles` 里删掉，否则同一个 preset 会被声明两次。
 
-```jsonc
-{
-  "dependencies": {
-    "dsh-craft-anything": "link:D:/dsh-craft-anything/dsh-craft-anything",
-    "dsh-craft-reverse-preset": "link:D:/dsh-preset/dsh-craft-reverse-preset"
-  },
-  "dsh": {
-    "profile": {
-      "bundles": ["dsh-craft-anything", "dsh-craft-reverse-preset"]
-    }
-  }
-}
-```
-
-装完重启 Harness，**新建一个会话**才会在模式选择器里看到「逆向复刻模式」：preset 是开会话时读取的，已经开着的会话不会长出这一项。它只注册一个 Agent preset，不重复挂 MCP。
+模式选择器只在**新建会话**时读，已经开着的会话不会长出这一项。
 
 ## 六件事
 
 1. **精简 MCP 桥**（`bridge.js`）：自己用 stdio JSON-RPC 连 `craft-anything-cli mcp --deep`，只把 13 个高频工具注册成一等工具，其余全部走 `craft_tool` 按名调用。默认关掉 `@deepseek-ai/dsh-mcp-client`，因为它无条件注册 39 个工具、每轮 40KB。
 2. **渐进式工具集**：`list_toolsets` → `enable_toolset` 打开 native / formats / browser / android 等；打开后新工具立即能用 `craft_tool` 调，但**不会**进入工具表。
-3. **逆向复刻模式**：`craft_reverse` 开一轮“拆原件 → 写规格 → 复刻 → 官方检查收敛 → 验收”，另附一个可选预设（[preset/](preset)）：装好后在模式选择器里直接选「逆向复刻模式」，打一句目标就自动按七阶段跑。
+3. **镜像复刻模式**：`craft_reverse` 开一轮“拆原件 → 写规格 → 复刻 → 官方检查收敛 → 验收”，并自带一个 Agent preset：在新会话的模式选择器里选「镜像复刻」，打一句目标就自动按七阶段跑。
 4. **引擎与模式控制**：`craft_engine` 一个工具管住 `status`（设置 + 外部引擎现状）、`doctor`（安装自检）、`deep-on` / `deep-off`（Deep 模式）、`ghidra`（指到本机 Ghidra）。上游把这些散在 `setup` 工具集里，模型不查 `list_toolsets` 就摸不到。
 5. **宿主无关 SKILL.md 导出**：`craft_skill_export` 把整套操作规程（连接自检、渐进工具集、工作记忆、证据分级、错误码表、宿主对照、边界）写成一份 SKILL.md；带 `host=claude|codex|opencode|qoder|cursor|all` 就直接落到那些宿主的 skills 目录里（`craft-anything-dsh`，不覆盖上游那份）。
 6. **侧栏功能面板**：完整 17 工具集 / 325 工具目录，每个工具一句中文释义（英文原文作悬停提示），可搜索（中英文都匹配，120ms 防抖）、按工具集折叠、每组最多渲染 40 行。
@@ -91,7 +74,7 @@ Expand-Archive preset.zip -DestinationPath D:\dsh-preset -Force
 | 维度 | 上游本体（桌面 App / CLI / MCP） | 本插件（DSH 侧） |
 |---|---|---|
 | 形态 | 装一个 200MB 起的 Rust 程序，自带界面 | 一个几十 KB 的 Node 桥 + 侧栏面板 |
-| 模型 | 自己接编码代理（Claude Code、Codex 等），由外部调度 MCP | 直接用当前会话的模型，切到「逆向复刻模式」就开工 |
+| 模型 | 自己接编码代理（Claude Code、Codex 等），由外部调度 MCP | 直接用当前会话的模型，切到「镜像复刻」就开工 |
 | 工具暴露 | `tools/list` 一次给全量（默认 30–39 个，开满 323） | 15 个一等工具，其余按名转发，首轮不背全量 |
 | 每步上下文 | 39 个工具 schema ≈ 11,500 tokens | 4,300 tokens，省 63% |
 | 流程 | Study → Build → Check → Refine，靠模型自觉 | `craft_reverse` 七阶段状态机，看工具调用自动推进 |
