@@ -48,7 +48,32 @@ craft-anything-cli --version        # 期望 craft-anything-cli 0.6.x
 
 重启 Harness 即生效：侧栏多一个 Craft Anything 面板，工具表多出 17 个工具。若 profile 里还留着官方的 `craft-anything-mcp`（通用 MCP 客户端版），把那一行改成 `disabled: true`，否则两套客户端会各注册一套工具、每轮重复付 schema。
 
-可选预设 `preset/` 同理再加一条 `"dsh-craft-reverse-preset": "link:<本仓库>/preset"` 与对应 bundle 名；它只注册一个 Agent preset，不重复挂 MCP。
+#### 复刻模式是**另一个包**，要单独装
+
+「逆向复刻模式」不在主包里 —— 它是独立的 Agent preset 包 `dsh-craft-reverse-preset`，住在本仓库的 `preset/` 目录。只装主包，模式选择器里不会出现它，这是设计如此：不想用模式的人不必多背一份 persona。
+
+git 依赖不能指向子目录（`github:...#v0.5.1` 只会装根包），所以这一步用解压后的本地目录：
+
+```powershell
+Invoke-WebRequest https://github.com/dk2064/dsh-craft-anything/releases/download/v0.5.1/dsh-craft-reverse-preset-0.2.0.zip -OutFile preset.zip
+Expand-Archive preset.zip -DestinationPath D:\dsh-preset -Force
+```
+
+```jsonc
+{
+  "dependencies": {
+    "dsh-craft-anything": "link:D:/dsh-craft-anything/dsh-craft-anything",
+    "dsh-craft-reverse-preset": "link:D:/dsh-preset/dsh-craft-reverse-preset"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": ["dsh-craft-anything", "dsh-craft-reverse-preset"]
+    }
+  }
+}
+```
+
+装完重启 Harness，**新建一个会话**才会在模式选择器里看到「逆向复刻模式」：preset 是开会话时读取的，已经开着的会话不会长出这一项。它只注册一个 Agent preset，不重复挂 MCP。
 
 ## 六件事
 
