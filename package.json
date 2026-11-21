@@ -1,6 +1,6 @@
 {
   "name": "dsh-craft-anything",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "description": "Unofficial bridge that puts Craft Anything (study any app, site or game, then rebuild it) inside DeepSeek Harness: a slim MCP tool surface, engine/mode control, a reverse-rebuild mode, an exportable host-neutral SKILL.md, and a feature panel.",

@@ -2,7 +2,7 @@
 
 这一页不是模板，是发布前实际跑过、实际修过的清单。任何一次发版都应该更新它：改了什么、怎么验的、还剩什么风险。
 
-- 审核对象：`dsh-craft-anything` 0.5.0（本仓库）
+- 审核对象：`dsh-craft-anything` 0.5.1（本仓库）
 - 审核日期：2026-11-21
 - 环境：Windows 11 / Node 24.11 / DSH（Web GUI 本地）/ Craft Anything CLI 0.6.1
 
@@ -18,6 +18,9 @@
 | 6 | `craft_engine status` 里 `depth` 是**死变量**（算了没输出） | 用户看不到"本桥是否带 `--deep`"，遇到 `clean_room` 无从判断 | 补进返回数组；断言 `engine status states bridge args: true` |
 | 7 | 常驻提示段 3,678 B 每步都在 | 没碰到 craft-anything 的会话也一直付费 | 纪律段改成会话级按需（`engaged` Set，上限 128）：2,888 B，用过之后 +571 B，逆向模式不重复加 |
 | 8 | 测试脚本硬编码 `%USERPROFILE%\...` 这种硬编码 | 换机器就断，也把用户名带进了仓库 | 改 `process.env.CRAFT_ANYTHING_CLI ?? join(homedir(), '.dsh', ...)`；`cordis.patch.yml` 改 `%USERPROFILE%` 模板，并实测模板能展开 |
+| 9 | **0.5.0 上线后 17 个工具全部消失**：三条 `systemPrompt.section()` 里 `order` 是 `undefined` | 新版 Host 校验 `order must be a finite number`，抛出即整个 fiber `failed`，`ctx.effect` 里已注册的工具一并回滚 —— 插件"装了但没工具" | 三条 section 都传确定数字（`Number.isFinite(order) ? order / order+1 / order+2 : 1 / 2 / 3`）；`plugin_manager` 的 `fiberPhase` 从 `failed` 变 `applied`，`craft_engine status` 真跑通 |
+| 10 | `apply` 返回一个数字（可达工具数），cordis 把 `apply` 的返回值当作 effect 收集 | `TypeError: Invalid effect`（数字既非函数、非 null、非 thenable） | `apply` 不再返回任何值；可达数写进诊断日志 `apply ok reachable=39` |
+| 11 | 握手无上限：`await bridge.start()` 最长 30 s 才返回 | CLI 卡住时工具注册被推迟到超时之后，界面表现为"插件装了没工具" | `Promise.race` 5 s 上限；超时只记日志，工具照常注册，`craft_engine status` 可重连；加载过程落盘 `%TEMP%\craft-anything-load.log`（`apply start` → `effect.*` → `bridge ok tools=39` → `apply ok`） |
 
 ## 2. 安全边界（实现层面）
 

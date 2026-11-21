@@ -135,7 +135,7 @@ craft-anything-cli --version        # 期望 craft-anything-cli 0.6.x
 
 | 指标 | 改前（dsh-mcp-client） | 改后（精简桥） |
 |---|---|---|
-| 每步工具 schema | 40,311 字节 ≈ 11,500 tokens | **15,121 字节 ≈ 4,320 tokens**（省 63%） |
+| 每步工具 schema | 40,311 字节 ≈ 11,500 tokens | **15,211 字节 ≈ 4,346 tokens**（省 63%） |
 | 注册的工具数 | 39 | 13 + `craft_tool` + `craft_engine` + `craft_skill_export` + `craft_reverse` |
 | 每步 schema deep-clone | 39 份 | 18 份 |
 | 提示段构造 | 每步重拼 17 行 | 模块加载时算一次；纪律段按会话状态决定要不要加 |

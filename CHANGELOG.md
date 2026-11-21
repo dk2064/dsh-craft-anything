@@ -2,6 +2,17 @@
 
 版本号跟随 `package.json`。每条都对应本机真实跑过的验证，不是计划。
 
+## 0.5.1 — 2026-11-21
+
+**修「插件装了但一个工具都没有」。** 0.5.0 在真实 Host 里 `fiberPhase: failed`，本会话与子代理的工具表里 `craft` 命中 0。
+
+- **根因一**：三条 `systemPrompt.section()` 的 `order` 是 `undefined`，新版 Host 校验 `order must be a finite number`；抛出后整个 fiber 回滚，`ctx.effect` 内已注册的 17 个工具一并消失。修：三条都传确定数字（`Number.isFinite(order) ? order / order+1 / order+2 : 1 / 2 / 3`）。
+- **根因二**：`apply` 返回了可达工具数（数字），cordis 把 `apply` 的返回值当 effect 收集 → `TypeError: Invalid effect`。修：`apply` 不返回任何值。
+- **握手有上限**：`bridge.start()` 用 `Promise.race` 限 5 s，超时只记日志，注册照常进行；`craft_engine status` 可重连。
+- **加载过程落盘**：`markLoad()` 写 `%TEMP%\craft-anything-load.log`（`apply start exe=…` → `effect.*` → `bridge ok tools=39` → `apply ok reachable=39`），Host 不回显插件错误时也有 breadcrumb。
+- `section()` 返回值类型宽容：返回 disposer 才收集，返回对象/空一律不交给 cordis。
+- 实测：`plugin_manager` 的 `fiberPhase` 由 `failed` 变 `applied`，系统提示出现完整桥接段与工作纪律段，`craft_engine status` 跑通（服务端 59 工具、`core 39/39`、`setup 20/20`），`plugin-smoke` 17 工具 / schema 15,211 B ≈ 4,346 tokens。
+
 ## 0.5.0 — 2026-11-21
 
 **发布准备：文档、许可、安装、双语 skill。**

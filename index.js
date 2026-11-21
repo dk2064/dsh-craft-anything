@@ -18,8 +18,8 @@
  *
  * @module dsh-craft-anything
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createMcpBridge, resultText } from './bridge.js'
 import { buildSkillMd } from './skill.js'
@@ -77,6 +77,24 @@ const HOT_TOOLS = new Set([
 
 /** @type {ReturnType<typeof createMcpBridge> | undefined} */
 let activeBridge
+
+/**
+ * Append one line to `<tmp>/craft-anything-load.log`.
+ *
+ * The Host keeps plugin-level errors out of reach when a row fails to mount,
+ * so the loader path leaves its own breadcrumb: the file says whether `apply`
+ * was entered, which executable it resolved, and — if it threw — the stack.
+ * Diagnostics only; every failure here is swallowed.
+ *
+ * @param {string} line
+ */
+function markLoad(line) {
+  try {
+    appendFileSync(join(tmpdir(), 'craft-anything-load.log'), `${new Date().toISOString()} ${line}\n`)
+  } catch {
+    /* diagnostics must never break the load */
+  }
+}
 
 /** @type {{ version?: string, server?: { name?: string, version?: string }, toolsets?: Array<{ id: string, title: string, declared: number, enabledByDefault: boolean }>, tools?: unknown[] } | undefined} */
 let catalog
@@ -965,6 +983,25 @@ function skillExportDefinition(ctx) {
  * @param {{ sectionName?: string, reverseMode?: boolean, executable?: string, args?: string[], callTimeoutMs?: number, toolsets?: 'auto' | 'all' | string[] }} [config] - row configuration.
  */
 export async function apply(ctx, config = {}) {
+  markLoad(`apply start exe=${resolveExecutable(config.executable)}`)
+  try {
+    const reachable = await loadPlugin(ctx, config)
+    markLoad(`apply ok reachable=${reachable}`)
+    // cordis treats an `apply` return value as an effect and rejects anything
+    // that is neither a function, null, nor a thenable — so return nothing.
+  } catch (error) {
+    markLoad(`apply failed: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`)
+    throw error
+  }
+}
+
+/**
+ * Register the prompt sections and the tools. Split out of `apply` only so the
+ * breadcrumbs above can report both outcomes.
+ * @param {import('@deepseek-ai/cordis').Context} ctx
+ * @param {Record<string, any>} config
+ */
+async function loadPlugin(ctx, config = {}) {
   const sectionName = config.sectionName ?? 'craft-anything'
   const order = typeof ctx.systemPrompt.getSectionOrder === 'function'
     ? ctx.systemPrompt.getSectionOrder('MCP_SERVERS')
@@ -979,17 +1016,28 @@ export async function apply(ctx, config = {}) {
     log: (message) => ctx.logger?.info?.(`craft-anything: ${message}`),
   })
   activeBridge = bridge
-  ctx.effect(() => () => {
-    if (activeBridge === bridge) activeBridge = undefined
-    void bridge.dispose()
+  ctx.effect(() => {
+    markLoad('effect.bridge')
+    return () => {
+      if (activeBridge === bridge) activeBridge = undefined
+      void bridge.dispose()
+    }
   }, 'craft-anything.bridge')
-  try {
-    await bridge.start()
-  } catch (error) {
-    ctx.logger?.error?.(`craft-anything: MCP server did not start: ${error instanceof Error ? error.message : String(error)}`)
-  }
+  // Bounded handshake: a CLI that hangs delays the registrations below by at
+  // most this budget, and `craft_engine status` retries the connection later.
+  const handshake = bridge.start().then(
+    () => 'ok',
+    (error) => `error: ${error instanceof Error ? error.message : String(error)}`,
+  )
+  const outcome = await Promise.race([
+    handshake,
+    new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000)),
+  ])
+  if (outcome !== 'ok') ctx.logger?.error?.(`craft-anything: MCP server did not start (${String(outcome)})`)
+  markLoad(`bridge ${String(outcome)} tools=${bridge.list().length}`)
 
   ctx.effect(() => {
+    markLoad('effect.tools')
     const disposers = []
     const available = new Set(bridge.list().map((tool) => tool.name))
     for (const tool of bridge.list()) {
@@ -1008,36 +1056,52 @@ export async function apply(ctx, config = {}) {
     }
   }, 'craft-anything.tools')
 
-  ctx.effect(() => ctx.systemPrompt.section({
-    name: sectionName,
-    ...(order === undefined ? {} : { order }),
-    interpolate: false,
-    text: () => BRIDGE_TEXT,
-  }), 'craft-anything.prompt')
+  // `section()` may hand back a disposer, a handle object, or nothing at all
+  // depending on the Host build; cordis throws `Invalid effect` when an effect
+  // callback returns anything but a function. Normalise it here.
+  ctx.effect(() => {
+    markLoad('effect.prompt')
+    const registered = ctx.systemPrompt.section({
+      name: sectionName,
+      // Newer Hosts reject a section whose `order` is missing or not finite, so
+      // fall back to a literal number instead of omitting the field.
+      order: Number.isFinite(order) ? order : 1,
+      interpolate: false,
+      text: () => BRIDGE_TEXT,
+    })
+    return typeof registered === 'function' ? registered : undefined
+  }, 'craft-anything.prompt')
 
   // Paid for only by sessions that have already called the server, and not by
   // reverse runs — their own section carries the same rules in Chinese.
-  ctx.effect(() => ctx.systemPrompt.section({
-    name: `${sectionName}.discipline`,
-    interpolate: false,
-    text: (context) => {
-      const key = sessionKeyOf(context?.scope)
-      if (key === undefined || !engaged.has(key)) return ''
-      return runs.has(key) ? '' : DISCIPLINE_TEXT
-    },
-  }), 'craft-anything.discipline-prompt')
+  ctx.effect(() => {
+    const registered = ctx.systemPrompt.section({
+      name: `${sectionName}.discipline`,
+      order: Number.isFinite(order) ? order + 1 : 2,
+      interpolate: false,
+      text: (context) => {
+        const key = sessionKeyOf(context?.scope)
+        if (key === undefined || !engaged.has(key)) return ''
+        return runs.has(key) ? '' : DISCIPLINE_TEXT
+      },
+    })
+    return typeof registered === 'function' ? registered : undefined
+  }, 'craft-anything.discipline-prompt')
 
-  if (config.reverseMode === false) return
+  if (config.reverseMode === false) return bridge.list().length
 
-  ctx.effect(() => ctx.systemPrompt.section({
-    name: `${sectionName}.reverse`,
-    ...(order === undefined ? {} : { order }),
-    interpolate: false,
-    text: (context) => {
-      const state = runFor(context?.scope)
-      return state === undefined ? '' : reverseText(state)
-    },
-  }), 'craft-anything.reverse-prompt')
+  ctx.effect(() => {
+    const registered = ctx.systemPrompt.section({
+      name: `${sectionName}.reverse`,
+      order: Number.isFinite(order) ? order + 2 : 3,
+      interpolate: false,
+      text: (context) => {
+        const state = runFor(context?.scope)
+        return state === undefined ? '' : reverseText(state)
+      },
+    })
+    return typeof registered === 'function' ? registered : undefined
+  }, 'craft-anything.reverse-prompt')
 
   ctx.effect(() => ctx.tools.register({
     name: 'craft_reverse',
@@ -1142,4 +1206,6 @@ export async function apply(ctx, config = {}) {
       return next()
     }
   }, { global: true })
+
+  return bridge.list().length
 }
