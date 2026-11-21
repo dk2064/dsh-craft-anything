@@ -25,6 +25,31 @@ craft-anything-cli --version        # 期望 craft-anything-cli 0.6.x
 
 装完最省事的自检是 `craft_engine action=status`：它回当前设置、外部引擎，以及 17 个工具集各自可见多少工具。
 
+### 装进 Harness
+
+插件是按 profile 的 bundle 方式挂载的，两步都在 `<profile>/package.json` 里改（profile 目录形如 `~/.dsh/profiles/desktop`）：
+
+```jsonc
+{
+  "dependencies": {
+    // 1. 依赖指到本仓库目录（link: 之后改动无需重装）
+    "dsh-craft-anything": "link:<本仓库的绝对路径>"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        // 2. 加进 bundle 列表，顺序不影响结果
+        "dsh-craft-anything"
+      ]
+    }
+  }
+}
+```
+
+重启 Harness 即生效：侧栏多一个 Craft Anything 面板，工具表多出 17 个工具。若 profile 里还留着官方的 `craft-anything-mcp`（通用 MCP 客户端版），把那一行改成 `disabled: true`，否则两套客户端会各注册一套工具、每轮重复付 schema。
+
+可选预设 `preset/` 同理再加一条 `"dsh-craft-reverse-preset": "link:<本仓库>/preset"` 与对应 bundle 名；它只注册一个 Agent preset，不重复挂 MCP。
+
 ## 六件事
 
 1. **精简 MCP 桥**（`bridge.js`）：自己用 stdio JSON-RPC 连 `craft-anything-cli mcp --deep`，只把 13 个高频工具注册成一等工具，其余全部走 `craft_tool` 按名调用。默认关掉 `@deepseek-ai/dsh-mcp-client`，因为它无条件注册 39 个工具、每轮 40KB。

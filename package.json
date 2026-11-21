@@ -40,6 +40,7 @@
     "locale/*.json",
     "icon.svg",
     "tools",
+    "preset",
     "README.md",
     "CHANGELOG.md",
     "AUDIT.md",
