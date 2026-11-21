@@ -15,11 +15,11 @@ pwsh -File install.ps1              # Windows：自动找最新 release 并下�
 #    或手动从 https://github.com/storytold/craft-anything/releases 取 portable 包
 craft-anything-cli --version        # 期望 craft-anything-cli 0.6.x
 
-# 2. 让 Harness 加载本插件：cordis.patch.yml 里 executable 指向上面那个 exe
+# 1. 让 Harness 加载本插件：cordis.patch.yml 里 executable 指向上面那个 exe
 
-# 3. 重启 Harness —— 侧栏出现 Craft Anything，工具表多出 17 个工具
+# 2. 重启 Harness —— 侧栏出现 Craft Anything，工具表多出 17 个工具
 
-# 4. 想让别的宿主也有这套规程，让模型跑一次：
+# 3. 想让别的宿主也有这套规程，让模型跑一次：
 #    craft_skill_export { "host": "all" }
 ```
 
@@ -104,6 +104,7 @@ craft-anything-cli --version        # 期望 craft-anything-cli 0.6.x
 | 秘密 / cookie / 个人数据不进记忆；静态分析不能断言运行时行为 | `skill.js` 第 4、5 节 |
 
 没吸收的部分也写清楚：上游那份文件是给「只能读文件的宿主」准备的，端口自检、渐进工具集在插件里已经是机制（`ensureToolset`、`craft_engine`、按名转发），不需要再靠文字提醒一遍。
+
 ## 和 skill 方案比
 
 外面还有另一条接法：不写插件，只写一份 `SKILL.md` 塞进宿主的 skills 目录，再用上游 `setup` 注册 MCP。代表是上游自带的 `crates/setup/src/skill.md`（v2）和第三方包装 [saintedKyle/craft-anything-skill](https://github.com/saintedKyle/craft-anything-skill) 的 `anywhere/`（install.ps1 / install.sh + `craft-anything-anywhere`）。这条路很轻，也很聪明；值得逐项对上。
