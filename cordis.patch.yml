@@ -1,0 +1,26 @@
+# Two rows: the old blanket MCP bridge (disabled) and the slim bridge.
+#
+# `@deepseek-ai/dsh-mcp-client` registers every tool the server lists — 39 of
+# them, about 40 KB of JSON schema that ships with every model step. It stays
+# here, disabled, so switching back is one `disabled: false` away (and removing
+# the second row, which would otherwise start a second server process).
+- insert:
+    - id: craft-anything-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        serverName: craft-anything
+        transport: stdio
+        command: '%USERPROFILE%\.dsh\tools\craft-anything\craft-anything-cli.exe'
+        args: ['mcp', '--deep']
+        failOnStartupError: false
+        toolCallTimeoutMs: 600000
+    - id: craft-anything
+      name: 'dsh-craft-anything'
+      # `executable` takes an absolute path, a `%VAR%` / `$VAR` template, or a
+      # bare name that PATH resolves. The absolute path stays here so this
+      # machine needs no PATH change; on another machine swap it or drop the key.
+      config:
+        executable: '%USERPROFILE%\.dsh\tools\craft-anything\craft-anything-cli.exe'
+        args: ['mcp', '--deep']
+        callTimeoutMs: 600000

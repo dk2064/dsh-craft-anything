@@ -1,0 +1,54 @@
+dsh-craft-anything
+Copyright 2026 dsh-craft-anything contributors
+
+This product bridges Craft Anything (https://github.com/storytold/craft-anything)
+and is not affiliated with, endorsed by, or sponsored by its authors.
+
+--------------------------------------------------------------------------------
+Third-party components and data
+
+1. Craft Anything engine (craft-anything-cli)
+   - Copyright: Craft Anything authors and contributors
+   - License: Apache-2.0 (per the upstream repository)
+   - Status here: NOT redistributed. No engine binary is included in this
+     repository. The bridge starts a copy that you installed yourself, from the
+     upstream release or from source.
+
+2. catalog.json
+   - A generated snapshot of the metadata the engine reports over MCP: tool
+     names, English descriptions, toolsets, and read-only flags.
+   - Source: `craft-anything-cli mcp --all-tools` output, fetched with
+     `tools/generate-catalog.mjs`; regenerate it against your own engine build.
+   - Those descriptions are upstream content under Apache-2.0. This repository
+     redistributes them unmodified, as produced by the engine, with attribution
+     to the upstream project.
+
+3. catalog-zh.json
+   - Chinese one-line explanations of those tools, written for this project.
+   - License: Apache-2.0, same as the rest of this repository.
+
+4. Craft Anything skill text
+   - The bundled `skill.js` produces a SKILL.md written for this project. It is
+     not a copy of the upstream `crates/setup/src/skill.md`; it states the same
+     operating rules in our own words and adds the DeepSeek Harness specifics.
+   - The upstream skill text, if present on your machine
+     (`~/.claude/skills/craft-anything/SKILL.md`), belongs to the upstream
+     project and is not included here.
+
+5. Trademarks
+   - "Craft Anything" and "ArtCraft" are used descriptively to name the software
+     this bridge connects to. Brand assets from the upstream repository
+     (docs/brand/) are not included; icon.svg in this repository is original.
+   - "DeepSeek Harness" and "DSH" name the host application and belong to their
+     respective owners.
+
+--------------------------------------------------------------------------------
+What this repository does contain of its own
+
+  bridge.js        stdio MCP client (JSON-RPC framing, process lifecycle)
+  index.js         tool surface, approval gates, reverse mode, prompt section
+  skill.js         host-neutral SKILL.md generator
+  client.js        the sidebar panel (built by tools/build-client.mjs)
+  locale/*.json    UI strings
+  tools/*          catalog generation, client build, smoke tests, benchmark
+  icon.svg         original artwork

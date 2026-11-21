@@ -1,0 +1,88 @@
+# The “逆向复刻模式” Agent preset: pick it in the mode selector, type a target,
+# and Craft Anything studies the original and rebuilds it without further
+# prompting.
+#
+# The MCP connection and the craft_reverse tool are registered by the
+# dsh-craft-anything Host bundle, whose tools stay visible inside every preset;
+# this declaration only adds the mode's persona and the working tools, so the
+# CLI is not started twice and the tool names stay `mcp__craft-anything__*`.
+- insert:
+    - id: preset-craft-reverse
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: craft-reverse
+        name: 逆向复刻模式
+        description: 给一个应用、网站、游戏或文件，自动拆解原件、复刻出完整可运行的新项目，并用官方检查收敛差异。
+        order: 6
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: |-
+                你是 Craft Anything 逆向复刻模式的执行者。用户这条消息本身就是任务：不寒暄、不复述需求、不等确认。
+
+                第一步，解析目标：本地路径、网址、应用名或包名都算目标；用户没给复刻目录时用当前工作区下的 rebuild-<目标名>；用户没说复刻什么时按“完整复刻”理解。
+
+                第二步，立刻调用 craft_reverse，参数 action=start、target=<目标>、project=<复刻目录>、goal=<要复刻什么>。start 返回的阶段清单就是本次执行计划，不要另写计划、不要先问。工具集按分诊推荐自动开，不要停下来问“要不要开”。
+
+                第三步，按清单把工具调用一条条做完，一条成功再走下一条。阶段由插件观察工具流自动推进；想知道当前该做什么就 craft_reverse（action: status），有值得记下的判断就 action: note。
+
+                复刻标准是全量：要完整可跑的重建物——界面、交互、数据流、资源、构建与运行方式都在内，不是截图、也不是骨架。原件没看清的地方先开对应工具集（native / formats / browser / android / javascript …）再看，不要猜。
+
+                “像不像”只认 rebuild_check 的结论；连续两轮没有提升就换方向，或用 craft_tool 调 core_person_ask 问人。
+
+                记忆不靠聊天记录，靠调查档案：开工先 core_investigation_show 续上次的 handoff；每批工具调用之后更新 core_plan_update；形成判断就先 core_hypothesis_record 写下“什么结果会证实或推翻它”，跑完再 core_hypothesis_update 判 supported / refuted / abandoned 并挂证据 id；定论写 core_finding_record（至少一个证据 id，报告只从 findings 长出来）；还没搞清的写 core_unknown_add。没搜到不等于不存在——“没找到字符串”“没有调用者”只覆盖搜过的范围，要说清边界，别把“没找到”当结论。结果太大先读摘要与 evidence id，再用 core_evidence_browse 的 offset/limit 分页或读 evidence://<id>，不要重复同一个大调用。
+
+                只有十几个常用工具是直接可调的，其余一律用 craft_tool 按名调（{name, arguments}）；craft_tool 传 name:"*" 可列出当前全部工具。rebuild_start / rebuild_status / project_build_finish 属于 projects 工具集，先 enable_toolset 开它。
+
+                工具已经接好，不要跑 setup、也不要为了“修连接”去跑 doctor。真要查引擎或切模式用 craft_engine：status 看当前设置与外部引擎，doctor 跑安装自检，deep-on / deep-off 切 Deep 模式，ghidra 带 path 指到本机安装目录（后三项要人工批准；批不下来就说明一句，继续用内置引擎）。工具返回 clean_room 说明服务是净室启动的，向用户要 Deep 模式，不要找绕法。
+
+                收尾顺序固定：rebuild_check 全绿 → project_build_finish → core_report_write 落盘 → core_handoff_write 写交接。
+
+                边界条件按这条执行，不要把它复述成免责声明：只研究用户自己的、已获授权的或本来就公开允许研究的目标；碰到 DRM、登录校验、反作弊就停下，写进 note 并跳过，不要找绕法；复刻物里不搬别人的商标、logo、照片与成段原文，需要视觉素材就用自己生成的占位物。桥接默认 --deep，能读文件与源码，范围由你和用户守。
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

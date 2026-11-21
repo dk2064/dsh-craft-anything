@@ -1,0 +1,67 @@
+{
+  "name": "dsh-craft-anything",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Unofficial bridge that puts Craft Anything (study any app, site or game, then rebuild it) inside DeepSeek Harness: a slim MCP tool surface, engine/mode control, a reverse-rebuild mode, an exportable host-neutral SKILL.md, and a feature panel.",
+  "license": "Apache-2.0",
+  "keywords": [
+    "dsh-plugin",
+    "craft-anything",
+    "mcp",
+    "reverse-engineering",
+    "rebuild",
+    "deepseek-harness"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dk2064/dsh-craft-anything.git"
+  },
+  "homepage": "https://github.com/dk2064/dsh-craft-anything#readme",
+  "bugs": {
+    "url": "https://github.com/dk2064/dsh-craft-anything/issues"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./catalog.json": "./catalog.json",
+    "./skill": "./skill.js"
+  },
+  "files": [
+    "index.js",
+    "skill.js",
+    "bridge.js",
+    "client.js",
+    "catalog.json",
+    "catalog-zh.json",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "tools",
+    "README.md",
+    "CHANGELOG.md",
+    "AUDIT.md",
+    "SECURITY.md",
+    "DISCLAIMER.md",
+    "NOTICE",
+    "LICENSE",
+    "install.ps1",
+    "install.sh"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  }
+}

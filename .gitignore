@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+pnpm-lock.yaml.bak
+
+# 上游引擎二进制与本机安装（永不入库：许可与体积都不合适）
+*.exe
+*.dll
+*.so
+*.dylib
+craft-anything-cli*
+
+# 生成的目录
+skills/
+dist/
+*.log
+*.tmp
+
+# 本机 Harness 状态与凭据
+.dsh/
+.env
+.env.*
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

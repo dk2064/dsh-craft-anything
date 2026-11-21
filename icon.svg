@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Craft Anything">
+  <defs>
+    <linearGradient id="ca-body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3f6df0"/>
+      <stop offset="1" stop-color="#1b3ea8"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#ca-body)"/>
+  <path d="M20 44 40 24" fill="none" stroke="#eef3ff" stroke-width="6" stroke-linecap="round"/>
+  <path d="M38 18h12v12" fill="none" stroke="#eef3ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="22" cy="46" r="4" fill="#9fe3ff"/>
+</svg>
